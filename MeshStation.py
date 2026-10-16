@@ -8242,6 +8242,9 @@ def open_chrome_app(url: str):
         "--disable-session-crashed-bubble",
         "--no-first-run",
         "--disable-gpu",
+        # No GCM push registration (DEPRECATED_ENDPOINT/QUOTA_EXCEEDED spam),
+        # sync or other background calls to Google: the app window needs none.
+        "--disable-background-networking",
     ])
 
 def find_free_port(start_port: int = 8000, max_tries: int = 100) -> int:
