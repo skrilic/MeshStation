@@ -13,6 +13,7 @@ import json
 import asyncio
 import threading
 import html
+import inspect
 import asyncio
 import locale
 import re
@@ -8184,7 +8185,7 @@ def main_page():
 
     rebuild_channel_tabs()
     def _safe_timer(fn):
-        if asyncio.iscoroutinefunction(fn):
+        if inspect.iscoroutinefunction(fn):
             async def wrapper():
                 try:
                     await fn()
