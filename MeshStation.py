@@ -2987,6 +2987,7 @@ def list_internal_sdr_devices() -> tuple[list[tuple[str, str]], str | None]:
         ("bladerf",  "bladerf={idx}"),
         ("airspy",   "airspy={idx}"),
         ("airspyhf", "airspyhf={idx}"),
+        ("miri",     "miri={idx}"),
         ("uhd",      "uhd={idx}"),
         ("soapy",    "soapy={idx}"),
     ]
@@ -3164,6 +3165,12 @@ def start_engine_direct():
         return
 
     primary_key, primary_preset_id, primary_calc, _ = primary
+
+    # libmirisdr (SDRplay RSP1 and Mirics clones) cannot go below 1.3 Msps and
+    # silently runs there when asked for 1 Msps, which breaks the decimation.
+    # 2 Msps is a rate the MSi2500 delivers exactly and an exact multiple of
+    # bw*4 for every preset bandwidth (62.5, 125, 250 kHz).
+    samp_rate = 2_000_000 if re.search(r"\bmiri\s*=", device_args, flags=re.IGNORECASE) else 1_000_000
     log_to_console(f"[ENGINE] Primary: {primary_key} (preset_id={primary_preset_id}), extra chains: {len(valid_configs)}")
 
     cmd = [
@@ -3171,7 +3178,7 @@ def start_engine_direct():
         "--host", "127.0.0.1",
         "--port", str(state.port),
         "--center-freq", str(primary_calc["center_freq_hz"]),
-        "--samp-rate", "1000000",
+        "--samp-rate", str(samp_rate),
         "--lora-bw", str(int(round(primary_calc["bw_khz"] * 1000))),
         "--sf", str(primary_calc["sf"]),
         "--gain", str(int(state.direct_gain)),
@@ -8221,10 +8228,15 @@ def open_chrome_app(url: str):
             "Please install Chrome from https://www.google.com/chrome and relaunch the application."
         )
         sys.exit(1)
+    profile_dir = os.path.expanduser(
+        "~/Library/Application Support/MeshStation/chrome-profile"
+    )
+    os.makedirs(profile_dir, exist_ok=True)
 
     return subprocess.Popen([
         chrome_path,
         "--app=" + url,
+        "--user-data-dir=" + profile_dir,
         "--disable-features=Translate,TranslateUI",
         "--disable-translate",
         "--disable-session-crashed-bubble",
